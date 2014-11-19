@@ -3,6 +3,7 @@ A Happy MPD web service
 """
 import subprocess, os, mpd
 from flask import Flask, g
+import json
 
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
 PASSWORD = os.getenv('MPD_PASSWORD', None)
@@ -26,16 +27,31 @@ def teardown_request(exception):
     except:
         pass
 
-def youtube_dl(url):
-    out = subprocess.check_output(["youtube-dl", "--prefer-insecure", "-f", "140", "-i", "-g", url])
-    return out.splitlines()
+def queue_youtube(url, mpdcli):
+    """
+    Call youtube-dl to get track information and queue a song into MPD.
+    If python-mpd2 supports it set track metadata
+
+    Returns list of mpd song ids
+    """
+    out = subprocess.check_output(["youtube-dl", "-j", "--prefer-insecure", "-f", "140", "-i", url])
+
+    songids = []
+    for line in out.splitlines():
+        song = json.loads(line)
+        songid = mpdcli.addid(song['url'])
+        if hasattr(mpdcli, 'addtagid'):
+            mpdcli.addtagid(songid, 'Album', 'YouTube')
+            mpdcli.addtagid(songid, 'Title', song['title'])
+        songids.append(songid)
+
+    return songids
 
 @app.route('/add/<youtubeId>')
 def add(youtubeId):
     url="http://www.youtube.com/watch?v="+youtubeId
     try:
-        g.client.add(*youtube_dl(url))
-        g.client.play()
+        songs = queue_youtube(url, g.client)
     except:
         return 'ups'
     return 'yay'
