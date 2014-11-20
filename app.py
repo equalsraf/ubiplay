@@ -7,10 +7,10 @@ from functools import wraps
 import json
 
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
+# FIXME: deprecate this in favour of API arguments
 PASSWORD = os.getenv('MPD_PASSWORD', None)
 
 app = Flask(__name__)
-app.debug = os.getenv('DEBUG')
 
 def needsmpd(func):
     """
@@ -106,5 +106,6 @@ def stop():
     return 'aye sir, stopping the ship!'
 
 if __name__ == '__main__':
+    app.debug = os.getenv('DEBUG')
     app.run(host='0.0.0.0', port=8080)
 
