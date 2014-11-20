@@ -1,0 +1,21 @@
+
+
+.pure-g {
+	text-align: center;
+}
+
+.pure-g > div {
+	box-sizing: border-box;
+	padding: 2px;
+}
+
+#error {
+	display: none;
+	width: 100%;
+	text-align: left;
+}
+
+.button-error {
+	background: rgb(202, 60, 60); /* this is a maroon */
+	color: white;
+}

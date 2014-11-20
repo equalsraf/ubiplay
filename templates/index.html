@@ -1,0 +1,100 @@
+<html>
+		<head>
+				<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/pure-min.css">
+
+		<!--[if lte IE 8]>
+		    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/grids-responsive-old-ie-min.css">
+		<![endif]-->
+		<!--[if gt IE 8]><!-->
+		    <link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.5.0/grids-responsive-min.css">
+		<!--<![endif]-->
+
+
+				<link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+				<link rel="stylesheet" type="text/css" href="{{url_for('static', filename='style.css')}}">
+				<meta name="viewport" content="width=device-width, initial-scale=1">
+		</head>
+		<body>
+
+				<div class="pure-g">
+						<div class="pure-u-1 pure-u-md-1-2">
+							<h1>ubi::play</h1>
+							<button id="error" class="pure-button button-error">
+										<i class="fa fa-warning"></i>
+										<span class="msg"></span>
+										</button>
+						</div>
+				</div>
+				<div class="pure-g">
+						<div id="player" class="pure-u-1 pure-u-md-1-2">
+								<button id="button_play" class="pure-button pure-button-primary">
+										<i class="fa fa-play-circle"></i>
+										Play</button>
+								<button id="button_stop" class="pure-button pure-button-primary">
+										<i class="fa fa-stop"></i>
+										Stop</button>
+						</div>
+				</div>
+
+				<div class="pure-g">
+						<div class="pure-u-1 pure-u-md-1-2">
+								<form class="pure-form"><fieldset>
+												<legend>Add new Source</legend>
+												<input type="url" id="addsource_url" placeholder="Url">
+												<button type="button" id="button_addsource" class="pure-button">Add</button>
+										</fieldset></form>
+						</div>
+				</div>
+				<div class="pure-g">
+				</div>
+
+		
+		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script>
+		$(document).ready(function() {
+				function onError(resp, http_status, error) {
+					var json = $.parseJSON(resp.responseText);
+					if ('error' in json) {
+						$('#error .msg').text(json.error);
+					} else {
+						$('#error .msg').text('Error calling remote server');
+					}
+					$('#error').show();
+				}
+
+				$('#error').on("click", function(ev) {
+						$('#error').hide();
+				});
+
+				$('#button_play').on("click", function(ev) {
+						$.ajax({
+								url: "/play",
+						});
+				});
+
+				$('#button_stop').on("click", function(ev) {
+						$.ajax({
+								url: "/stop",
+						});
+				});
+
+				$('#button_addsource').on("click", function(ev) {
+						var url = $('#addsource_url').val();
+						if (!url) {
+								return;
+						}
+
+						$.ajax({
+								url: "/addurl",
+								contentType: 'application/json',
+								data: JSON.stringify({url: url}),
+								dataType: 'json',
+								type: 'POST',
+								error: onError,
+						});
+				});
+
+		});
+		</script>
+		</body>
+</html>
