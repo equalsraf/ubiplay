@@ -1,2 +1,3 @@
 Flask
-python-mpd
+git+https://github.com/Mic92/python-mpd2.git
+youtube-dl

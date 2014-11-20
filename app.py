@@ -27,6 +27,9 @@ def teardown_request(exception):
     except:
         pass
 
+def version_tuple(s):
+    return tuple(s.split('.'))
+
 def queue_youtube(url, mpdcli):
     """
     Call youtube-dl to get track information and queue a song into MPD.
@@ -40,9 +43,11 @@ def queue_youtube(url, mpdcli):
     for line in out.splitlines():
         song = json.loads(line)
         songid = mpdcli.addid(song['url'])
-        if hasattr(mpdcli, 'addtagid'):
+
+        if version_tuple(mpdcli.mpd_version) >= version_tuple('0.19.0'):
             mpdcli.addtagid(songid, 'Album', 'YouTube')
             mpdcli.addtagid(songid, 'Title', song['title'])
+
         songids.append(songid)
 
     return songids
