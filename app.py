@@ -55,7 +55,7 @@ def queue_youtube(url, mpdcli):
 
     songids = []
     for line in out.splitlines():
-        song = json.loads(line)
+        song = json.loads(line.decode('utf8'))
         songid = mpdcli.addid(song['url'])
 
         if version_tuple(mpdcli.mpd_version) >= version_tuple('0.19.0'):
