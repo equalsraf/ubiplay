@@ -2,7 +2,7 @@
 A Happy MPD web service
 """
 import subprocess, os, mpd
-from flask import Flask, g
+from flask import Flask, g, abort
 import json
 
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
@@ -14,10 +14,17 @@ app.debug = os.getenv('DEBUG')
 @app.before_request
 def before_request():
     """Connect to MPD with each request"""
-    g.client = mpd.MPDClient()
-    g.client.connect(HOSTNAME, 6600)
+    try:
+        g.client = mpd.MPDClient()
+        g.client.connect(HOSTNAME, 6600)
+    except:
+        abort(503)
+
     if PASSWORD:
-        g.client.password(PASSWORD)
+        try:
+            g.client.password(PASSWORD)
+        except:
+            abort(403)
 
 @app.teardown_request
 def teardown_request(exception):
