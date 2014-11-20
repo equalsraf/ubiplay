@@ -2,7 +2,7 @@
 A Happy MPD web service
 """
 import subprocess, os, mpd
-from flask import Flask, g, abort, request
+from flask import Flask, g, abort, request, render_template, jsonify
 from functools import wraps
 import json
 
@@ -83,19 +83,25 @@ def queue_youtube(url, mpdcli):
 
     return songids
 
+def json_error(errmsg, status_code=500):
+    resp = jsonify({'error':errmsg})
+    resp.status_code = status_code
+    return resp
+
 @app.route('/addurl', methods=['POST'])
 @jsonrequest
 @needsmpd
 def addurl():
     """Add URL on the playlist."""
     if not request.json.get('url', None):
-        abort(400)
+        return json_error('Invalid Request, need URL', 400)
 
     try:
         queue_youtube(request.json.get('url'), g.client)
     except:
-        return 'ups'
-    return 'yay'
+        return json_error('Unable to queue Url')
+
+    return jsonify({})
 
 @app.route('/add/<youtubeId>')
 @needsmpd
