@@ -3,6 +3,7 @@ A Happy MPD web service
 """
 import subprocess, os, mpd
 from flask import Flask, g, abort, request
+from functools import wraps
 import json
 
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
@@ -11,28 +12,32 @@ PASSWORD = os.getenv('MPD_PASSWORD', None)
 app = Flask(__name__)
 app.debug = os.getenv('DEBUG')
 
-@app.before_request
-def before_request():
-    """Connect to MPD with each request"""
-    try:
-        g.client = mpd.MPDClient()
-        g.client.connect(HOSTNAME, 6600)
-    except:
-        abort(503)
+def needsmpd(f):
+    """
+    Decorator to setup/teardown MPD connection.
 
-    if PASSWORD:
+    - MPDClient instance is available as g.client
+    - If MPD is not available raise 503
+    - If MPD authentication fails, raise 403
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
         try:
-            g.client.password(PASSWORD)
-        except:
-            abort(403)
+            g.client = mpd.MPDClient()
+            g.client.connect(HOSTNAME, 6600)
+        except Exception as ex:
+            abort(503)
 
-@app.teardown_request
-def teardown_request(exception):
-    """Disconnect from MPD after each request"""
-    try:
+        if PASSWORD:
+            try:
+                g.client.password(PASSWORD)
+            except:
+                abort(403)
+
+        res = f(*args, **kwargs)
         g.client.disconnect()
-    except:
-        pass
+        return res
+    return wrapper
 
 def version_tuple(s):
     return tuple(s.split('.'))
@@ -60,6 +65,7 @@ def queue_youtube(url, mpdcli):
     return songids
 
 @app.route('/addurl', methods=['POST'])
+@needsmpd
 def addurl():
     if not request.headers['Content-Type'] == 'application/json':
         abort(400)
@@ -73,6 +79,7 @@ def addurl():
     return 'yay'
 
 @app.route('/add/<youtubeId>')
+@needsmpd
 def add(youtubeId):
     url="http://www.youtube.com/watch?v="+youtubeId
     try:
@@ -82,11 +89,13 @@ def add(youtubeId):
     return 'yay'
 
 @app.route('/play')
+@needsmpd
 def play():
     g.client.play()
     return 'aye sir, full steam ahead!'
 
 @app.route('/stop')
+@needsmpd
 def stop():
     g.client.stop()
     return 'aye sir, stopping the ship!'
