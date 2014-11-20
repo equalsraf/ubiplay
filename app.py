@@ -2,7 +2,7 @@
 A Happy MPD web service
 """
 import subprocess, os, mpd
-from flask import Flask, g, abort
+from flask import Flask, g, abort, request
 import json
 
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
@@ -58,6 +58,19 @@ def queue_youtube(url, mpdcli):
         songids.append(songid)
 
     return songids
+
+@app.route('/addurl', methods=['POST'])
+def addurl():
+    if not request.headers['Content-Type'] == 'application/json':
+        abort(400)
+    if not request.json.get('url', None):
+        abort(400)
+
+    try:
+        songs = queue_youtube(request.json.get('url'), g.client)
+    except:
+        return 'ups'
+    return 'yay'
 
 @app.route('/add/<youtubeId>')
 def add(youtubeId):
