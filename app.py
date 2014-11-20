@@ -6,6 +6,8 @@ from flask import Flask, g, abort, request
 from functools import wraps
 import json
 
+# TODO: All mpd views should take a json request
+
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
 # FIXME: deprecate this in favour of API arguments
 PASSWORD = os.getenv('MPD_PASSWORD', None)
@@ -39,6 +41,21 @@ def needsmpd(func):
         return res
     return wrapper
 
+def jsonrequest(func):
+    """
+    Decorator to handle JSON requests
+
+    - If content-type is not application/json raise 400
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if request.json == None:
+            abort(400)
+
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def version_tuple(version):
     """Split version string into tuple of strings."""
     return tuple(version.split('.'))
@@ -67,11 +84,10 @@ def queue_youtube(url, mpdcli):
     return songids
 
 @app.route('/addurl', methods=['POST'])
+@jsonrequest
 @needsmpd
 def addurl():
     """Add URL on the playlist."""
-    if not request.headers['Content-Type'] == 'application/json':
-        abort(400)
     if not request.json.get('url', None):
         abort(400)
 
