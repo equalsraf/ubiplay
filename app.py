@@ -103,7 +103,7 @@ def queue_youtube(url, mpdcli):
         songid = mpdcli.addid(song['url'])
 
         if version_tuple(mpdcli.mpd_version) >= version_tuple('0.19.0'):
-            mpdcli.addtagid(songid, 'Album', 'YouTube')
+            mpdcli.addtagid(songid, 'Album', 'youtube-dl')
             mpdcli.addtagid(songid, 'Title', song['title'])
 
         songids.append(songid)
