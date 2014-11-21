@@ -68,21 +68,6 @@ def needsmpd(func):
         return func(*args, **kwargs)
     return wrapper
 
-def jsonrequest(func):
-    """
-    Decorator to handle JSON requests
-
-    - If content-type is not application/json raise 400
-    """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if request.json == None:
-            abort(400)
-
-        return func(*args, **kwargs)
-    return wrapper
-
-
 def version_tuple(version):
     """Split version string into tuple of strings."""
     return tuple(version.split('.'))
@@ -111,7 +96,6 @@ def queue_youtube(url, mpdcli):
     return songids
 
 @app.route('/addurl', methods=['POST'])
-@jsonrequest
 @needsmpd
 def addurl():
     """Add URL on the playlist."""
