@@ -5,6 +5,7 @@ import subprocess, os, mpd
 from flask import Flask, g, abort, request, render_template, jsonify
 from functools import wraps
 import json
+from logging import warn
 
 # TODO: All mpd views should take a json request
 
@@ -14,31 +15,57 @@ PASSWORD = os.getenv('MPD_PASSWORD', None)
 
 app = Flask(__name__)
 
-def needsmpd(func):
-    """
-    Decorator to setup/teardown MPD connection.
+class APIException(Exception):
+    """Raise this exception in API views to return a json error object."""
+    def __init__(self, message, status_code=500, source=None):
+        super(APIException, self).__init__(message)
+        self.message = message
+        self.status_code = status_code
+        self.source = source
 
-    - MPDClient instance is available as g.client
-    - If MPD is not available raise 503
-    - If MPD authentication fails, raise 403
-    """
+@app.errorhandler(APIException)
+def jsonrequest_errorhandler(ex):
+    """Turn APIException into json response message."""
+    warn('%s: %s' % (ex.message, ex.source))
+    resp = jsonify({'error':ex.message})
+    resp.status_code = ex.status_code
+    return resp
+
+class MPDWrapper:
+    """MPDClient wrapper, to delay connection."""
+
+    def __init__(self, hostname, password=None, port=6600):
+        self._hostname = hostname
+        self._port = port
+        self._password = password
+        self._client = mpd.MPDClient()
+        self._connected = False
+
+    def __getattr__(self, attrname):
+        """Only connect to server when getting an instance attribute."""
+        attr = getattr(self._client, attrname)
+        if not self._connected:
+            self._connected = True
+
+            try:
+                self._client.connect(self._hostname, self._port)
+            except Exception as ex:
+                raise APIException('Unable to reach MPD server', 503, source=ex)
+
+            if self._password:
+                try:
+                    self._client.password(self._password)
+                except Exception as ex:
+                    raise APIException('Authentication failed', 403, source=ex)
+
+        return attr
+
+def needsmpd(func):
+    """Create MPDClient as g.client."""
     @wraps(func)
     def wrapper(*args, **kwargs):
-        try:
-            g.client = mpd.MPDClient()
-            g.client.connect(HOSTNAME, 6600)
-        except Exception:
-            abort(503)
-
-        if PASSWORD:
-            try:
-                g.client.password(PASSWORD)
-            except:
-                abort(403)
-
-        res = func(*args, **kwargs)
-        g.client.disconnect()
-        return res
+        g.client = MPDWrapper(HOSTNAME, password=PASSWORD, port=6600)
+        return func(*args, **kwargs)
     return wrapper
 
 def jsonrequest(func):
@@ -83,23 +110,20 @@ def queue_youtube(url, mpdcli):
 
     return songids
 
-def json_error(errmsg, status_code=500):
-    resp = jsonify({'error':errmsg})
-    resp.status_code = status_code
-    return resp
-
 @app.route('/addurl', methods=['POST'])
 @jsonrequest
 @needsmpd
 def addurl():
     """Add URL on the playlist."""
     if not request.json.get('url', None):
-        return json_error('Invalid Request, need URL', 400)
+        raise APIException('Invalid Request, need URL', 400)
 
     try:
         queue_youtube(request.json.get('url'), g.client)
-    except:
-        return json_error('Unable to queue Url')
+    except APIException as ex:
+        raise ex
+    except Exception as ex:
+        raise APIException('Unable to queue Url', source=ex)
 
     return jsonify({})
 
