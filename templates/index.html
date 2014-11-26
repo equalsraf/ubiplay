@@ -58,10 +58,14 @@
 		<script>
 		$(document).ready(function() {
 				function onError(resp, http_status, error) {
-					var json = $.parseJSON(resp.responseText);
-					if ('error' in json) {
-						$('#error .msg').text(json.error);
-					} else {
+					try {
+						var json = $.parseJSON(resp.responseText);
+						if ('error' in json) {
+							$('#error .msg').text(json.error);
+						} else {
+							$('#error .msg').text('Error calling remote server');
+						}
+					} catch (e) {
 						$('#error .msg').text('Error calling remote server');
 					}
 					$('#error').show();
