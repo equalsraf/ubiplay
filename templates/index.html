@@ -16,6 +16,10 @@
 		</head>
 		<body>
 
+			<div id="progress">
+				<i class="fa fa-circle-o-notch fa-spin"></i>
+			</div>
+			<div id="content">
 				<div class="pure-g">
 						<div class="pure-u-1 pure-u-md-1-2">
 							<h1>ubi::play</h1>
@@ -47,6 +51,7 @@
 				</div>
 				<div class="pure-g">
 				</div>
+			</div>
 
 		
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
@@ -60,6 +65,16 @@
 						$('#error .msg').text('Error calling remote server');
 					}
 					$('#error').show();
+					$('#content').show();
+					$('#progress').hide();
+				}
+
+				function onSuccess(json, http_status, error) {
+					// Clean up after a successful request
+					$('#addsource_url').val('');
+					$('#error').hide();
+					$('#progress').hide();
+					$('#content').show();
 				}
 
 				$('#error').on("click", function(ev) {
@@ -69,13 +84,19 @@
 				$('#button_play').on("click", function(ev) {
 						$.ajax({
 								url: "/play",
+								error: onError,
+								success: onSuccess,
 						});
+						$('#content').hide();
 				});
 
 				$('#button_stop').on("click", function(ev) {
 						$.ajax({
 								url: "/stop",
+								error: onError,
+								success: onSuccess,
 						});
+						$('#content').hide();
 				});
 
 				$('#button_addsource').on("click", function(ev) {
@@ -91,7 +112,10 @@
 								dataType: 'json',
 								type: 'POST',
 								error: onError,
+								success: onSuccess,
 						});
+						$('#content').hide();
+						$('#progress').show();
 				});
 
 		});

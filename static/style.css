@@ -9,6 +9,14 @@
 	padding: 2px;
 }
 
+#progress {
+	display: none;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+}
+
+
 #error {
 	display: none;
 	width: 100%;
