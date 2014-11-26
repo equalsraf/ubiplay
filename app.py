@@ -111,6 +111,12 @@ def addurl():
 
     return jsonify({})
 
+@app.route('/status')
+@needsmpd
+def status():
+    """Get MPD status."""
+    return jsonify(g.client.status())
+
 @app.route('/add/<youtubeId>')
 @needsmpd
 def add(ytid):
@@ -126,14 +132,14 @@ def add(ytid):
 def play():
     """If stopped, start playback."""
     g.client.play()
-    return 'aye sir, full steam ahead!'
+    return jsonify(g.client.status())
 
 @app.route('/stop')
 @needsmpd
 def stop():
     """Stop playback."""
     g.client.stop()
-    return 'aye sir, stopping the ship!'
+    return jsonify(g.client.status())
 
 @app.route('/')
 def index():
