@@ -79,11 +79,16 @@ def queue_youtube(url, mpdcli):
 
     Returns list of mpd song ids
     """
-    out = subprocess.check_output(["youtube-dl", "-j", "--prefer-insecure", \
-                "-f", "140/http_mp3_128_url", "-i", url])
+
+    cmd = ["youtube-dl", "-j", "--prefer-insecure", \
+                "-f", "140/http_mp3_128_url", "-i", url]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
     songids = []
-    for line in out.splitlines():
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
         song = json.loads(line.decode('utf8'))
         songid = mpdcli.addid(song['url'])
 
