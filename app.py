@@ -144,6 +144,20 @@ def stop():
     g.client.stop()
     return jsonify(g.client.status())
 
+@app.route('/previous')
+@needsmpd
+def previous():
+    """Previous track."""
+    g.client.previous()
+    return jsonify(g.client.status())
+
+@app.route('/next')
+@needsmpd
+def next():
+    """Next track."""
+    g.client.next()
+    return jsonify(g.client.status())
+
 @app.route('/')
 def index():
     return render_template('index.html')
