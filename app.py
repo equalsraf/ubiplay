@@ -7,8 +7,6 @@ from functools import wraps
 import json
 from logging import warn
 
-# TODO: All mpd views should take a json request
-
 HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
 # FIXME: deprecate this in favour of API arguments
 PASSWORD = os.getenv('MPD_PASSWORD', None)
