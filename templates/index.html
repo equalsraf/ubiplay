@@ -31,18 +31,12 @@
 				</div>
 				<div class="pure-g">
 						<div id="player" class="pure-u-1 pure-u-md-1-2">
-								<button id="button_backward" class="pure-button pure-button-primary">
-										<i class="fa fa-backward"></i>
-										Prev</button>
 								<button id="button_play" class="pure-button pure-button-primary">
 										<i class="fa fa-play-circle"></i>
 										Play</button>
 								<button id="button_stop" class="pure-button pure-button-primary">
 										<i class="fa fa-stop"></i>
 										Stop</button>
-								<button id="button_forward" class="pure-button pure-button-primary">
-										<i class="fa fa-forward"></i>
-										Next</button>
 						</div>
 				</div>
 
@@ -91,15 +85,6 @@
 						$('#error').hide();
 				});
 
-				$('#button_backward').on("click", function(ev) {
-						$.ajax({
-								url: "/previous",
-								error: onError,
-								success: onSuccess,
-						});
-						$('#content').hide();
-				});
-
 				$('#button_play').on("click", function(ev) {
 						$.ajax({
 								url: "/play",
@@ -112,15 +97,6 @@
 				$('#button_stop').on("click", function(ev) {
 						$.ajax({
 								url: "/stop",
-								error: onError,
-								success: onSuccess,
-						});
-						$('#content').hide();
-				});
-
-				$('#button_forward').on("click", function(ev) {
-						$.ajax({
-								url: "/next",
 								error: onError,
 								success: onSuccess,
 						});
