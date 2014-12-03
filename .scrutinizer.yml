@@ -114,3 +114,6 @@ checks:
 filter:
     excluded_paths:
         - '*/test/*'
+tools:
+    pylint: true
+        python_version: 3
