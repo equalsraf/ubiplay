@@ -8,3 +8,5 @@ install:
   - pip install coverage
   - pip install coveralls
 script: nosetests --with-coverage --cover-tests --cover-package=app
+after_success:
+  coveralls
