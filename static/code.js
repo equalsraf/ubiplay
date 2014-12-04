@@ -1,4 +1,5 @@
 $(document).ready(function() {
+
 		function onError(resp, http_status, error) {
 			try {
 				var json = $.parseJSON(resp.responseText);
@@ -12,6 +13,8 @@ $(document).ready(function() {
 			}
 			$('#error').show();
 			$('#span_addsource').removeClass("glyphicon-refresh glyphicon-refresh-animate").addClass("glyphicon-plus");
+			$('.btn-success').removeClass("btn-success").addClass("btn-primary");
+
 		}
 
 		function onSuccess(json, http_status, error) {
@@ -19,6 +22,7 @@ $(document).ready(function() {
 			$('#addsource_url').val('');
 			$('#error').hide();
 			$('#span_addsource').removeClass("glyphicon-refresh glyphicon-refresh-animate").addClass("glyphicon-plus");
+			$('.btn-success').removeClass("btn-success").addClass("btn-primary");
 			retrivePlaylist();
 		}
 
@@ -30,6 +34,8 @@ $(document).ready(function() {
 						error: onError,
 						success: populatePlaylist,
 				});
+				clearTimeout(next_event);
+				next_event = setTimeout(retrivePlaylist,30000);
 		}
 
 		$('.close').on('click',function(){
@@ -45,10 +51,6 @@ $(document).ready(function() {
 						success: setCurrent,
 				});
 		}
-
-		$('.close').on('click',function(){
-		  $(this).parent().hide();
-		});
 
 		function populatePlaylist(json, http_status, error){
 			var items = [];
@@ -70,6 +72,7 @@ $(document).ready(function() {
 						error: onError,
 						success: onSuccess,
 				});
+				$(this).css('background-color', '#99FFCC');
 			});
 			$('.list-group-item').on("mouseover",function(ev) {
 				$(this).children('.remove-song').show();
@@ -91,7 +94,7 @@ $(document).ready(function() {
 		}
 
 		function setCurrent(json, http_status, error){		    
-		    $('#'+json.songid).addClass("list-group-item-info");
+		    $('#'+json.songid).css('background-color', '#99CCFF');
 		}
 
 		$('#button_previous').on("click", function(ev) {
@@ -100,6 +103,7 @@ $(document).ready(function() {
 						error: onError,
 						success: onSuccess,
 				});
+				$(this).removeClass("btn-primary").addClass("btn-success");
 		});
 
 		$('#button_play').on("click", function(ev) {
@@ -108,6 +112,7 @@ $(document).ready(function() {
 						error: onError,
 						success: onSuccess,
 				});
+				$(this).removeClass("btn-primary").addClass("btn-success");
 		});
 
 		$('#button_pause').on("click", function(ev) {
@@ -116,6 +121,7 @@ $(document).ready(function() {
 						error: onError,
 						success: onSuccess,
 				});
+				$(this).removeClass("btn-primary").addClass("btn-success");
 		});
 
 		$('#button_stop').on("click", function(ev) {
@@ -124,6 +130,7 @@ $(document).ready(function() {
 						error: onError,
 						success: onSuccess,
 				});
+				$(this).removeClass("btn-primary").addClass("btn-success");
 		});
 
 		$('#button_next').on("click", function(ev) {
@@ -132,6 +139,7 @@ $(document).ready(function() {
 						error: onError,
 						success: onSuccess,
 				});
+				$(this).removeClass("btn-primary").addClass("btn-success");
 		});
 
 		$('#button_addsource').on("click", function(ev) {
@@ -153,5 +161,5 @@ $(document).ready(function() {
 
 		});
 
-		retrivePlaylist();
+		var next_event = setTimeout(retrivePlaylist,0);
 });
