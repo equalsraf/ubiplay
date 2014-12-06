@@ -118,7 +118,7 @@ def addurl():
 @needsmpd
 def playid():
     """Play specific song."""
-    if not request.json.get('songid', None):
+    if request.json.get('songid', None) == None:
         raise APIException('No songid was given', 400)
     g.client.playid(request.json.get('songid'))
     return jsonify(g.client.status())
@@ -127,9 +127,27 @@ def playid():
 @needsmpd
 def deleteid():
     """Remove specific song."""
-    if not request.json.get('songid', None):
+    if request.json.get('songid', None) == None:
         raise APIException('No songid was given', 400)
     g.client.deleteid(request.json.get('songid'))
+    return jsonify(g.client.status())
+
+@app.route('/setvol', methods=['POST'])
+@needsmpd
+def setvol():
+    """Set the volume."""
+    if request.json.get('volume', None) == None:
+        raise APIException('No volume was given', 400)
+    g.client.setvol(request.json.get('volume'))
+    return jsonify(g.client.status())
+
+@app.route('/moveid', methods=['POST'])
+@needsmpd
+def moveid():
+    """Move a given song id to a given position."""
+    if (request.json.get('id', None) and request.json.get('pos', None)) == None:
+        raise APIException('Missing Id or Position', 400)
+    g.client.moveid(request.json.get('id'), request.json.get('pos'))
     return jsonify(g.client.status())
 
 @app.route('/status')
@@ -183,11 +201,18 @@ def stop():
     g.client.stop()
     return jsonify(g.client.status())
 
+@app.route('/clear')
+@needsmpd
+def clear():
+    """Clear the playlist."""
+    g.client.clear()
+    return jsonify(g.client.status())
+
 @app.route('/playlistinfo')
 @needsmpd
 def playlistinfo():
     """Return current playlist."""
-    return jsonify({song['id']:song for song in g.client.playlistinfo()})
+    return jsonify({song['pos']:song for song in g.client.playlistinfo()})
 
 @app.route('/')
 def index():

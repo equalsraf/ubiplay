@@ -55,7 +55,7 @@ $(document).ready(function() {
 		function populatePlaylist(json, http_status, error){
 			var items = [];
 		    $.each(json, function (id, data) {
-		        items.push('<li class="list-group-item" id="' + id + '">' 
+		        items.push('<li class="list-group-item" id="' + data.id + '">' 
 		        	+ (data.title||"No title") 
 		        	+ '<span class="remove-song glyphicon glyphicon-remove pull-right" style="display:none;" aria-hidden="true"></span>'
 		        	+ '</li>');
@@ -95,6 +95,9 @@ $(document).ready(function() {
 
 		function setCurrent(json, http_status, error){		    
 		    $('#'+json.songid).css('background-color', '#99CCFF');
+		    $('#volume').attr("aria-valuenow",json.volume);
+		    $('#volume').attr("style","width: " + json.volume + "%;");
+		    $('#volume').text(json.volume + "%");
 		}
 
 		$('#button_previous').on("click", function(ev) {
@@ -142,6 +145,37 @@ $(document).ready(function() {
 				$(this).removeClass("btn-primary").addClass("btn-success");
 		});
 
+		$('#button_clear_playlist').on("click", function(ev) {
+				$.ajax({
+						url: "/clear",
+						error: onError,
+						success: onSuccess,
+				});
+				$(this).removeClass("btn-primary").addClass("btn-success");
+		});
+
+		$('#volume').parent().on("click", function(ev){
+			var volume = Math.round(100*ev.offsetX/$(this).width());
+			$.ajax({
+						url: "/setvol",
+						contentType: 'application/json',
+						data: JSON.stringify({volume: volume}),
+						dataType: 'json',
+						type: 'POST',
+						error: onError,
+						success: onSuccess,
+				});
+		});
+
+		$('#addsource_url').keypress(function (ev) {
+			 var key = ev.which;
+			 if(key == 13)  // the enter key code
+			  {
+			    $('#button_addsource').click();
+			    return false;  
+			  }
+			});
+
 		$('#button_addsource').on("click", function(ev) {
 				var url = $('#addsource_url').val();
 				if (!url) {
@@ -158,8 +192,23 @@ $(document).ready(function() {
 						success: onSuccess,
 				});
 				$('#span_addsource').removeClass("glyphicon-plus").addClass("glyphicon-refresh glyphicon-refresh-animate");
-
 		});
+
+		$('#playlist_list').sortable({ 
+    		stop: function(event, ui) {
+        		var pos = ui.item.index();
+        		var id = ui.item.attr("id");
+				$.ajax({
+						url: "/moveid",
+						contentType: 'application/json',
+						data: JSON.stringify({id: id, pos: pos}),
+						dataType: 'json',
+						type: 'POST',
+						error: onError,
+						success: onSuccess,
+				});
+    		}
+		}).disableSelection();
 
 		var next_event = setTimeout(retrivePlaylist,0);
 });
