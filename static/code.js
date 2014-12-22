@@ -155,7 +155,16 @@ $(document).ready(function() {
 		});
 
 		$('#volume').parent().on("click", function(ev){
-			var volume = Math.round(100*ev.offsetX/$(this).width());
+			var x;
+			if(ev.offsetX==undefined) // this works for Firefox
+			{
+				x = ev.pageX-$('#volume').offset().left;
+			}
+			else	// works in Google Chrome
+			{
+				x = ev.offsetX;
+			}
+			var volume = Math.round(100*x/$(this).width());
 			$.ajax({
 						url: "/setvol",
 						contentType: 'application/json',
