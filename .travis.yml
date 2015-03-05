@@ -4,9 +4,11 @@ python:
   - "3.3"
   - "2.7"
 install:
+  - sudo apt-get update
+  - sudo apt-get install vlc
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
-script: nosetests --with-coverage --cover-tests --cover-package=app
+script: nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol
 after_success:
   coveralls

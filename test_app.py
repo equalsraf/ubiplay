@@ -26,10 +26,10 @@ class TestNoMDP(unittest.TestCase):
             if not 'GET' in rule.methods:
                 continue
             # / is the frontpage, skip it
-            if rule.rule == '/':
+            if rule.rule in ('/', '/history'):
                 continue
             resp = self.app.get(rule.rule)
-            self.assertEquals(resp.status_code, 503)
+            self.assertEquals(resp.status_code, 503, rule.rule)
 
             # See python issue #10976
             data = json.loads(resp.data.decode(resp.charset or 'utf8'))

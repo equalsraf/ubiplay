@@ -41,6 +41,14 @@ def jsonrequest_errorhandler(ex):
     resp.status_code = ex.status_code
     return resp
 
+@app.errorhandler(ConnectionRefusedError)
+def jsonrequest_errorhandler(ex):
+    """Turn APIException into json response message."""
+    warn(ex)
+    resp = jsonify({'error':'Service is unavailable'})
+    resp.status_code = 503
+    return resp
+
 @app.route('/ydl_addurl', methods=['POST'])
 def ydl_addurl():
     if not request.json.get('url', None):
@@ -191,12 +199,12 @@ def ydl_worker():
     ydl worker reads URLs from the queue, calls youtube-dl to handle them,
     and queues the result into Vlc
     """
-    vlc_instance = vlc()
     while True:
         url = WORK_QUEUE.get(True)
         cmd = ["youtube-dl", "-j", "--prefer-insecure", \
                     "-f", "140/http_mp3_128_url", "-i", url]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        vlc_instance = vlc()
 
         while True:
             line = proc.stdout.readline()
