@@ -1,17 +1,29 @@
 """
-A Happy MPD web service
+Ubiplay, the happy Internet powered music player
 """
-import subprocess, os, mpd
-from flask import Flask, g, abort, request, render_template, jsonify
-from functools import wraps
+
+import subprocess, os
+from flask import Flask, request, render_template, jsonify
 import json
 from logging import warn
+from vlccontrol import VlcControl
+import queue
+from threading import Thread
+import redis
 
-HOSTNAME = os.getenv("MPD_HOSTNAME", "localhost")
+HOSTNAME = 'localhost'
+PORT = 4212
 # FIXME: deprecate this in favour of API arguments
-PASSWORD = os.getenv('MPD_PASSWORD', None)
+PASSWORD = os.getenv('UBIPLAY_PASSWORD', 'music')
 
 app = Flask(__name__)
+
+def vlc():
+    """Shortcut to get vlc control instance."""
+    return VlcControl(HOSTNAME, PORT, PASSWORD)
+
+# Work queue for youtube-dl
+WORK_QUEUE = queue.Queue()
 
 class APIException(Exception):
     """Raise this exception in API views to return a json error object."""
@@ -29,85 +41,14 @@ def jsonrequest_errorhandler(ex):
     resp.status_code = ex.status_code
     return resp
 
-class MPDWrapper:
-    """MPDClient wrapper, to delay connection."""
-
-    def __init__(self, hostname, password=None, port=6600):
-        self._hostname = hostname
-        self._port = port
-        self._password = password
-        self._client = mpd.MPDClient()
-        self._connected = False
-
-    def __getattr__(self, attrname):
-        """Only connect to server when getting an instance attribute."""
-        attr = getattr(self._client, attrname)
-        if not self._connected:
-            self._connected = True
-
-            try:
-                self._client.connect(self._hostname, self._port)
-            except Exception as ex:
-                raise APIException('Unable to reach MPD server', 503, source=ex)
-
-            if self._password:
-                try:
-                    self._client.password(self._password)
-                except Exception as ex:
-                    raise APIException('Authentication failed', 403, source=ex)
-
-        return attr
-
-def needsmpd(func):
-    """Create MPDClient as g.client."""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        g.client = MPDWrapper(HOSTNAME, password=PASSWORD, port=6600)
-        return func(*args, **kwargs)
-    return wrapper
-
-def version_tuple(version):
-    """Split version string into tuple of strings."""
-    return tuple(version.split('.'))
-
-def queue_youtube(url, mpdcli):
-    """
-    Call youtube-dl to get track information and queue a song into MPD.
-    If python-mpd2 supports it set track metadata
-
-    Returns list of mpd song ids
-    """
-
-    cmd = ["youtube-dl", "-j", "--prefer-insecure", \
-                "-f", "140/http_mp3_128_url", "-i", url]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-
-    songids = []
-    while True:
-        line = proc.stdout.readline()
-        if not line:
-            break
-        song = json.loads(line.decode('utf8'))
-        songid = mpdcli.addid(song['url'])
-
-        if version_tuple(mpdcli.mpd_version) >= version_tuple('0.19.0'):
-            mpdcli.addtagid(songid, 'Album', 'youtube-dl')
-            mpdcli.addtagid(songid, 'Title', song['title'])
-
-        songids.append(songid)
-
-    return songids
-
-@app.route('/addurl', methods=['POST'])
-@needsmpd
-def addurl():
-    """Add URL on the playlist."""
+@app.route('/ydl_addurl', methods=['POST'])
+def ydl_addurl():
     if not request.json.get('url', None):
         raise APIException('Invalid Request, need URL', 400)
 
     try:
-        queue_youtube(request.json.get('url'), g.client)
-    except APIException as ex:
+        WORK_QUEUE.put(request.json.get('url'), True, 0.5)
+    except queue.Full as ex:
         raise ex
     except Exception as ex:
         raise APIException('Unable to queue Url', source=ex)
@@ -115,109 +56,169 @@ def addurl():
     return jsonify({})
 
 @app.route('/playid', methods=['POST'])
-@needsmpd
 def playid():
     """Play specific song."""
     if request.json.get('songid', None) == None:
         raise APIException('No songid was given', 400)
-    g.client.playid(request.json.get('songid'))
-    return jsonify(g.client.status())
+    vlc().goto(int(request.json.get('songid')))
+    return status()
 
 @app.route('/deleteid', methods=['POST'])
-@needsmpd
 def deleteid():
     """Remove specific song."""
     if request.json.get('songid', None) == None:
         raise APIException('No songid was given', 400)
-    g.client.deleteid(request.json.get('songid'))
-    return jsonify(g.client.status())
+    vlc().delete(int(request.json.get('songid')))
+    return status()
 
 @app.route('/setvol', methods=['POST'])
-@needsmpd
 def setvol():
     """Set the volume."""
     if request.json.get('volume', None) == None:
         raise APIException('No volume was given', 400)
-    g.client.setvol(request.json.get('volume'))
-    return jsonify(g.client.status())
+    # Volume is [0-100], Vlc works in the [0-256] range
+    val = int((request.json.get('volume')/100)*256)
+    vlc().volume = val
+    return status()
 
 @app.route('/moveid', methods=['POST'])
-@needsmpd
 def moveid():
     """Move a given song id to a given position."""
-    if (request.json.get('id', None) and request.json.get('pos', None)) == None:
-        raise APIException('Missing Id or Position', 400)
-    g.client.moveid(request.json.get('id'), request.json.get('pos'))
-    return jsonify(g.client.status())
+    # FIXME: not implemented
+    return status()
+
+def normalize_volume(val):
+    """VLC volume range is 0-256 (or more), normalize to 0-100"""
+    volume = int((val / 256)*100)
+    return volume
 
 @app.route('/status')
-@needsmpd
 def status():
     """Get MPD status."""
-    return jsonify(g.client.status())
-
-@app.route('/add/<youtubeId>')
-@needsmpd
-def add(ytid):
-    url = "http://www.youtube.com/watch?v="+ytid
-    try:
-        queue_youtube(url, g.client)
-    except:
-        return 'ups'
-    return 'yay'
+    return jsonify({'volume':normalize_volume(vlc().volume)})
 
 @app.route('/previous')
-@needsmpd
-def previous():
+def prevsong():
     """Go to the previous song."""
-    g.client.previous()
-    return jsonify(g.client.status())
+    vlc().prev()
+    return status()
 
 @app.route('/play')
-@needsmpd
 def play():
     """If stopped, start playback."""
-    g.client.play()
-    return jsonify(g.client.status())
+    vlc().play()
+    return status()
 
 @app.route('/pause')
-@needsmpd
 def pause():
     """Pause the playback."""
-    g.client.pause()
-    return jsonify(g.client.status())
+    vlc().pause()
+    return status()
 
 @app.route('/next')
-@needsmpd
-def next():
+def nextsong():
     """Go to the next song."""
-    g.client.next()
-    return jsonify(g.client.status())
+    vlc().next()
+    return status()
 
 @app.route('/stop')
-@needsmpd
 def stop():
     """Stop playback."""
-    g.client.stop()
-    return jsonify(g.client.status())
+    vlc().stop()
+    return status()
 
 @app.route('/clear')
-@needsmpd
 def clear():
     """Clear the playlist."""
-    g.client.clear()
-    return jsonify(g.client.status())
+    vlc().clear()
+    return status()
+
+@app.route('/enqueue', methods=['POST'])
+def enqueue():
+    """Add URL on the playlist."""
+    if not request.json.get('url', None):
+        raise APIException('Invalid Request, need URL', 400)
+    vlc().enqueue(request.json.get('url'), True, 0.5)
+    return jsonify(result)
 
 @app.route('/playlistinfo')
-@needsmpd
 def playlistinfo():
     """Return current playlist."""
-    return jsonify({song['pos']:song for song in g.client.playlistinfo()})
+    result = {}
+    for item in vlc().playlist():
+        trackinfo = item.split('-', 1)
+        if len(trackinfo) < 2:
+            continue
+        songid = trackinfo[0].strip()
+        description = trackinfo[1].strip()
+        title = description.split(' ')[0]
+        if title in ('Media', 'Playlist'):
+            continue
+
+        try:
+            r = redis.StrictRedis()
+            metadata = r.get(title)
+            if metadata:
+                metadata = json.loads(metadata.decode('utf8'))
+                title = metadata['title']
+        except redis.exceptions.ConnectionError:
+            # We can work without redis, but we cant store
+            # metadata
+            pass
+
+        result[songid] = {'id':songid, 'title':title}
+    return jsonify(result)
+
 
 @app.route('/')
 def index():
+    """Front page."""
     return render_template('index.html')
 
+@app.route('/history')
+def history():
+    try:
+        r = redis.StrictRedis()
+        result = r.lrange('history', 0, -1) or []
+    except redis.exceptions.ConnectionError:
+        return jsonify({'history':[]})
+
+    return jsonify({'history':result})
+
+# Background worker
+def ydl_worker():
+    """
+    ydl worker reads URLs from the queue, calls youtube-dl to handle them,
+    and queues the result into Vlc
+    """
+    vlc_instance = vlc()
+    while True:
+        url = WORK_QUEUE.get(True)
+        cmd = ["youtube-dl", "-j", "--prefer-insecure", \
+                    "-f", "140/http_mp3_128_url", "-i", url]
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+        while True:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            song = json.loads(line.decode('utf8'))
+
+            try:
+                # Store reverse mapping in Redis
+                r = redis.StrictRedis()
+                # Expire entry after 24h
+                r.setex(song['url'], 3600*24, line)
+                r.lpush('history', url)
+                r.ltrim('history', 0, 30)
+            except redis.exceptions.ConnectionError:
+                pass
+
+            vlc_instance.enqueue(song['url'])
+
+worker = Thread(target=ydl_worker)
+worker.setDaemon(True)
+worker.start()
 
 if __name__ == '__main__':
     app.debug = os.getenv('DEBUG')

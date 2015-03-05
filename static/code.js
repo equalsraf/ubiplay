@@ -192,7 +192,7 @@ $(document).ready(function() {
 				}
 
 				$.ajax({
-						url: "/addurl",
+						url: "/ydl_addurl",
 						contentType: 'application/json',
 						data: JSON.stringify({url: url}),
 						dataType: 'json',
