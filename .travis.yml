@@ -6,9 +6,13 @@ python:
 install:
   - sudo apt-get update
   - sudo apt-get install vlc
+  - sudo apt-get install redis-server
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
-script: nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol
+script:
+  - nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol test_novlc.py
+  - vlc --intf telnet --telnet-password music &
+  - nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol test_vlc.py
 after_success:
   coveralls

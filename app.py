@@ -6,7 +6,7 @@ import subprocess, os
 from flask import Flask, request, render_template, jsonify
 import json
 from logging import warn
-from vlccontrol import VlcControl
+from vlccontrol import VlcControl, VlcControlException
 import queue
 from threading import Thread
 import redis
@@ -40,13 +40,19 @@ def jsonrequest_errorhandler(ex):
     resp = jsonify({'error':ex.message})
     resp.status_code = ex.status_code
     return resp
-
 @app.errorhandler(ConnectionRefusedError)
 def jsonrequest_errorhandler(ex):
-    """Turn APIException into json response message."""
+    """Turn backend connection error into json response message."""
     warn(ex)
-    resp = jsonify({'error':'Service is unavailable'})
-    resp.status_code = 503
+    resp = jsonify({'error':'VLC Service is unavailable'})
+    resp.status_code = 500
+    return resp
+@app.errorhandler(VlcControlException)
+def jsonrequest_errorhandler(ex):
+    """Turn backend connection error into json response message."""
+    warn(ex)
+    resp = jsonify({'error':'Error calling VLC backend'})
+    resp.status_code = 500
     return resp
 
 @app.route('/ydl_addurl', methods=['POST'])
