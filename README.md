@@ -1,5 +1,5 @@
 Minimal web based music player, with some tricks up its sleeve.
-Written in Python/Flask. Available under the New BSD license.
+Written in Python3/Flask. Available under the New BSD license.
 
 The following should suffice to get you started
 
