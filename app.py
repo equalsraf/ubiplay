@@ -208,7 +208,7 @@ def ydl_worker():
     while True:
         url = WORK_QUEUE.get(True)
         cmd = ["youtube-dl", "-j", "--prefer-insecure", \
-                    "-f", "140/http_mp3_128_url", "-i", url]
+                    "-f", "mp4/http_mp3_128_url", "-i", url]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         vlc_instance = vlc()
 
