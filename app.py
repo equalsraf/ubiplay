@@ -4,12 +4,18 @@ Ubiplay, the happy Internet powered music player
 
 import subprocess, os
 from flask import Flask, request, render_template, jsonify
-import json
+import json, sys
 from logging import warn
 from vlccontrol import VlcControl, VlcControlException
-import queue
 from threading import Thread
 import redis
+
+if sys.version_info < (3, 0):
+    # Python2 compatibility
+    ConnectionRefusedError = EOFError
+    import Queue as queue
+else:
+    import queue
 
 HOSTNAME = 'localhost'
 PORT = 4212
