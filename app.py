@@ -214,9 +214,10 @@ def ydl_worker():
     ydl worker reads URLs from the queue, calls youtube-dl to handle them,
     and queues the result into Vlc
     """
+    YOUTUBE_DL = os.getenv('YOUTUBE_DL', 'youtube-dl')
     while True:
         url = WORK_QUEUE.get(True)
-        cmd = ["youtube-dl", "-j", "--prefer-insecure", \
+        cmd = [YOUTUBE_DL, "-j", "--prefer-insecure", \
                     "-f", "mp4/http_mp3_128_url", "-i", url]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         vlc_instance = vlc()
