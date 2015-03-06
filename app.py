@@ -97,7 +97,8 @@ def setvol():
     if request.json.get('volume', None) == None:
         raise APIException('No volume was given', 400)
     # Volume is [0-100], Vlc works in the [0-256] range
-    val = int((request.json.get('volume')/100)*256)
+    # [Like before (100.0) ensures we are not using int]
+    val = int((request.json.get('volume')/100.0)*256)
     vlc().volume = val
     return status()
 
@@ -109,7 +110,9 @@ def moveid():
 
 def normalize_volume(val):
     """VLC volume range is 0-256 (or more), normalize to 0-100"""
-    volume = int((val / 256)*100)
+    # the 256.0 is necessary to use fractional numbers
+    # in Python2
+    volume = int((val / 256.0)*100)
     return volume
 
 @app.route('/status')
