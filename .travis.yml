@@ -13,5 +13,7 @@ script:
   - nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol test_novlc.py
   - vlc --intf telnet --telnet-password music &
   - nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol test_vlc.py
+  - redis-server &
+  - nosetests --with-coverage --cover-tests --cover-package=app --cover-package=vlccontrol test_vlc.py
 after_success:
   coveralls
